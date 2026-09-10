@@ -1,0 +1,36 @@
+name: Publish ARAN26 v8.16.9 APK
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/publish-v8169.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download, verify, and publish APK
+        env:
+          GH_TOKEN: ${{ github.token }}
+          APK_URL: 'https://release-assets.githubusercontent.com/github-production-release-asset/1342519342/98d6d272-9ab9-43a4-82c5-c030a78d6e40?sp=r&sv=2018-11-09&sr=b&spr=https&se=2026-09-10T11%3A58%3A08Z&rscd=attachment%3B+filename%3DARAN26-v8.16.9-PRODUCTION-ARM64.apk&rsct=application%2Fvnd.android.package-archive&skoid=96c2d410-5711-43a1-aedd-ab1947aa7ab0&sktid=398a6654-997b-47e9-b12b-9515b896b4de&skt=2026-09-10T10%3A57%3A57Z&ske=2026-09-10T11%3A58%3A08Z&sks=b&skv=2018-11-09&sig=taLuuG1wEPrKLgQmrnfHZr9G9X4%2BN5pkkbOVGf4ZxfI%3D&jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmVsZWFzZS1hc3NldHMuZ2l0aHVidXNlcmNvbnRlbnQuY29tIiwia2V5Ijoia2V5MSIsImV4cCI6MTc4OTA0MTIyOSwibmJmIjoxNzg5MDM5NDI5LCJwYXRoIjoicmVsZWFzZWFzc2V0cHJvZHVjdGlvbi5ibG9iLmNvcmUud2luZG93cy5uZXQifQ.3y1pNWBOODML74FmOowAn3fEDnxHvvsmPtcWhDPGULs&response-content-disposition=attachment%3B%20filename%3DARAN26-v8.16.9-PRODUCTION-ARM64.apk&response-content-type=application%2Fvnd.android.package-archive'
+          EXPECTED_SHA256: '01fc953c4a62bc6308c539d077123ab7c815a80e204ce9ecd6908c4029643714'
+        run: |
+          set -euo pipefail
+          APK='ARAN26-v8.16.9-PRODUCTION-ARM64.apk'
+          curl --fail --location --retry 3 "$APK_URL" -o "$APK"
+          echo "$EXPECTED_SHA256  $APK" | sha256sum --check
+          sha256sum "$APK" > "$APK.sha256"
+          cat > verification.txt <<'EOF'
+          Package: in.aran26.homeguards
+          Version: 8.16.8
+          Version code: 10169
+          Architecture: ARM64 (arm64-v8a)
+          Signing continuity: PASS
+          Certificate SHA-256: 25cb009b3ed547119dd66c2c5e421ab826d9cdec31b723dac932d1f946a0dc8d
+          Regression tests: 52/52 PASS
+          EOF
+          gh release create v8.16.9 "$APK" "$APK.sha256" verification.txt --repo "$GITHUB_REPOSITORY" --target main --title 'ARAN 26 v8.16.9 Production ARM64' --notes 'Production ARM64-only release. Fixes participant event editing so IDs, names, and participantEvents update atomically; removes stale and legacy duplicate event rows; refreshes the latest participant before attestation and ID-card generation; repairs stale event-name caches; retains District Coordinator hard delete/edit/DOB access, User-module visibility, KYC and delegated-permission fixes, 16 km Cross Country 4+2, and Rifle Shooting for men and women at 4 main + 1 spare.'
